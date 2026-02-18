@@ -2,9 +2,9 @@ from fastapi import APIRouter, Query, Request
 from sqlmodel import select
 
 from app.core.database import SessionDep
-from app.models.foods import Food
-from app.models.foods import FoodCreate
-from app.models.pagination import PaginationResponse
+from app.models import Food
+from app.schemas.foods import FoodCreate
+from app.schemas.pagination import PaginationResponse
 
 
 router = APIRouter(prefix="/foods", tags=["foods"])

@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Cookie, Response
 
 from app.core.database import SessionDep
-from app.models.auth import OTP
-from app.models.users import UserPublic, UserCreate
+from app.schemas.auth import OTP
+from app.schemas.users import UserPublic, UserCreate
 from app.services.auth import AuthServices
 from app.services.email import EmailServices
 from app.services.otp import (

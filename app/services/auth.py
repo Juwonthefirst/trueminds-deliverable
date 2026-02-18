@@ -5,10 +5,10 @@ from sqlmodel import select
 from argon2 import PasswordHasher
 
 from app.core.database import SessionDep
-from app.models.auth import SignupSessionData
-from app.models.users import User
+from app.models import User
+from app.schemas.auth import SignupSessionData
 from app.core.cache import cache
-from app.models.users import UserCreate
+from app.schemas.users import UserCreate
 
 ph = PasswordHasher()
 
