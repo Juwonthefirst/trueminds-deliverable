@@ -15,6 +15,7 @@ class LinkItem(SQLModel):
     food_id: Optional[int] = Field(
         default=None, foreign_key="food.id", primary_key=True
     )
+    food: "Food" = Relationship(back_populates="owners")
     side_protein_id: Optional[int] = Field(foreign_key="food.id")
     side_protein: "Food" = Relationship()
     extra_side_id: Optional[int] = Field(foreign_key="food.id")
@@ -28,3 +29,4 @@ class CartItem(DBModelBase, LinkItem, table=True):
     user_id: Optional[int] = Field(
         default=None, foreign_key="user.id", primary_key=True
     )
+    user: "User" = Relationship(back_populates="cart")

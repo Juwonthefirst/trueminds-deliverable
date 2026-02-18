@@ -5,7 +5,11 @@ from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.core import DBModelBase
-from app.models.orders import CartItem
+from app.models.link_models import CartItem
+
+if TYPE_CHECKING:
+    from app.models.orders import Order
+    from app.models.foods import Food
 
 
 class BaseUser(SQLModel):
@@ -19,7 +23,7 @@ class User(DBModelBase, BaseUser, table=True):
     id: int | None = Field(default=None, primary_key=True)
     password: str
     orders: list["Order"] = Relationship(back_populates="user")
-    cart: list["Food"] = Relationship(link_model=CartItem, back_populates="owners")
+    cart: list["Food"] = Relationship(link_model=CartItem, back_populates="user")
 
 
 class UserCreate(BaseUser):

@@ -5,26 +5,7 @@ from typing import Optional
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.core import DBModelBase
-
-# from app.models.foods import Food
-# from app.models.users import User
-
-
-class LinkItem(SQLModel):
-    food_id: int = Field(foreign_key="food.id", primary_key=True)
-    food: "Food" = Relationship(back_populates="owners")
-    side_protein_id: Optional[int] = Field(foreign_key="food.id")
-    side_protein: "Food" = Relationship()
-    extra_side_id: Optional[int] = Field(foreign_key="food.id")
-    extra_side: "Food" = Relationship()
-
-    quantity: int
-    special_instructions: Optional[str]
-
-
-class CartItem(DBModelBase, LinkItem, table=True):
-    owner_id: int = Field(foreign_key="user.id", primary_key=True)
-    owner: "User" = Relationship(back_populates="cart_items")
+from app.models.link_models import LinkItem
 
 
 class BaseOrder(SQLModel):
@@ -32,8 +13,9 @@ class BaseOrder(SQLModel):
 
 
 class Order(DBModelBase, BaseOrder, table=True):
-    id: int | None = Field(primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     user: "User" = Relationship(back_populates="orders")
+    order_items: list["OrderItem"] = Relationship(back_populates="order")
 
 
 class OrderItem(DBModelBase, LinkItem, table=True):
