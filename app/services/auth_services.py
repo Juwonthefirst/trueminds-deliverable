@@ -1,14 +1,15 @@
 import secrets
 from fastapi import HTTPException
 from pydantic import EmailStr
+from pydantic_settings import BaseSettings
 from sqlmodel import select
 from argon2 import PasswordHasher
 
 from app.core.database import SessionDep
 from app.models import User
-from app.schemas.auth import SignupSessionData
+from app.schemas.auth_schema import SignupSessionData
 from app.core.cache import cache
-from app.schemas.users import UserCreate
+from app.schemas.users_schema import UserCreate
 
 ph = PasswordHasher()
 

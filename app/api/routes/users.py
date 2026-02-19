@@ -3,11 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Cookie, Response
 
 from app.core.database import SessionDep
-from app.schemas.auth import OTP
-from app.schemas.users import UserPublic, UserCreate
-from app.services.auth import AuthServices
-from app.services.email import EmailServices
-from app.services.otp import (
+from app.schemas.auth_schema import OTP
+from app.schemas.users_schema import UserPublic, UserCreate
+from app.services.auth_services import AuthServices
+from app.services.email_services import EmailServices
+from app.services.otp_services import (
     OTPServices,
     OTPValidationAttemptsExceededError,
     OTPVerificationError,
