@@ -1,21 +1,17 @@
 from fastapi import APIRouter, HTTPException
 
+from app.api.deps import CurrentUserDep
 from app.core.database import SessionDep
-from app.models import User
 from app.services.cart_services import CartServices
 
 
-router = APIRouter(tags=["cart"])
+router = APIRouter(prefix="/cart", tags=["cart"])
 
 
-@router.post("{user_id}/cart/clear")
-def clear_cart(user_id: int, session: SessionDep):
-    user = session.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Usernot found")
-    cart_service = CartServices(session, user)
+@router.post("/clear/")
+def clear_cart(session: SessionDep, current_user: CurrentUserDep):
+    cart_service = CartServices(session, current_user)
     is_cleared = cart_service.clear_cart()
-
     if not is_cleared:
         raise HTTPException(status_code=500, detail="Failed to clear cart")
 

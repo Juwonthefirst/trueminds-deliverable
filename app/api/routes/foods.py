@@ -1,10 +1,10 @@
-from sqlite3 import IntegrityError
 from fastapi import APIRouter, HTTPException, Query, Request
 from sqlmodel import select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
+from app.api.deps import CurrentUserDep
 from app.core.database import SessionDep
-from app.models import Food
+from app.models import Food, User
 from app.schemas.foods_schema import FoodCreate
 from app.schemas.pagination import PaginationResponse
 
@@ -31,8 +31,12 @@ async def get_foods(
 
 
 @router.post("/")
-# check if the user is an admin before allowing the user to create a food
-async def create_food(food: FoodCreate, session: SessionDep) -> Food:
+async def create_food(
+    food: FoodCreate, session: SessionDep, current_user: CurrentUserDep
+) -> Food:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Only admins can create foods")
+
     db_food = Food.model_validate(food)
     try:
         db_food.save(session)

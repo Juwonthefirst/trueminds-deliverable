@@ -1,9 +1,9 @@
 import secrets
 from fastapi import HTTPException
 from pydantic import EmailStr
-from pydantic_settings import BaseSettings
 from sqlmodel import select
 from argon2 import PasswordHasher
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.database import SessionDep
 from app.models import User
@@ -12,6 +12,16 @@ from app.core.cache import cache
 from app.schemas.users_schema import UserCreate
 
 ph = PasswordHasher()
+
+
+class AuthFailedError(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=401, detail="Invalid Authentication credentials")
+
+
+class InvalidCredentialError(HTTPException):
+    def __init__(self, credential_name: str):
+        super().__init__(status_code=401, detail=f"Invalid {credential_name}")
 
 
 class AuthServices:
@@ -70,9 +80,22 @@ class AuthServices:
     def hash_password(self, password: str) -> str:
         return ph.hash(password)
 
+    def verify_password(self, password: str, hashed_password: str):
+        return ph.verify(hashed_password, password)
+
     async def create_user(self, user_data: dict) -> User:
-        self.verify_ceridentials(user_data["email"], user_data["phone_number"])
-        user = User.model_validate(user_data)
-        user.password = self.hash_password(user.password)
-        user.save(self.db)
-        return user
+        try:
+            self.verify_ceridentials(user_data["email"], user_data["phone_number"])
+            user = User.model_validate(user_data)
+            user.password = self.hash_password(user.password)
+            user.save(self.db)
+            return user
+        except IntegrityError as e:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=409, detail=f"Food with this name already exists: {e}"
+            )
+
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create food: {e}")
