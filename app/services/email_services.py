@@ -19,7 +19,7 @@ class EmailServices:
         html: str | None = None,
     ) -> resend.Emails.SendResponse:
         params: resend.Emails.SendParams = {
-            "from": "Beep <beep@resend.dev>",
+            "from": "Chuks Kitchen <chuckskitchen@resend.dev>",
             "to": [to],
             "subject": subject,
         }
