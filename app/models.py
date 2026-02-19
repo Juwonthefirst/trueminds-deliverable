@@ -76,10 +76,11 @@ class Food(DBModelBase, BaseFood, table=True):
 
 
 class BaseOrder(SQLModel):
-    user_id: int = Field(foreign_key="user.id")
+    pass
 
 
 class Order(DBModelBase, BaseOrder, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
     user: User = Relationship(back_populates="orders")
     items: list[Food] = Relationship(link_model=OrderItem)
