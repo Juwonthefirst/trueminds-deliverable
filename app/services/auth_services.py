@@ -54,7 +54,6 @@ class AuthServices:
             "attempts": 0,
             "otp_hash": otp_hash,
         }
-        print(session_data)
 
         await cache.set_hash(
             f"signup_session:{session_id}",

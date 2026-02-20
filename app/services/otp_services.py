@@ -24,7 +24,7 @@ class OTPServices:
     def generate_otp(cls) -> list[str]:
         otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
         otp_hash = hashlib.sha256(otp.encode()).hexdigest()
-
+        print(otp)
         return [otp, otp_hash]
 
     @classmethod

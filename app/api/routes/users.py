@@ -43,7 +43,6 @@ async def signup(
     )
     return {
         "message": "OTP sent to your email address",
-        "signup_session_id": session_id,
     }
 
 

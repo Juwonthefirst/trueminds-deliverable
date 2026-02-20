@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import cart, foods, users
+from app.core.cache import cache
 from app.core.database import create_db_and_tables
 
 
@@ -17,3 +18,4 @@ app.include_router(cart.router)
 @app.on_event("startup")  # type: ignore
 async def startup_event():
     create_db_and_tables()
+    cache.connect()

@@ -12,7 +12,7 @@ if redis_url is None:
 
 
 class Cache:
-    def __init__(self):
+    def connect(self):
         pool = async_redis.ConnectionPool.from_url(url=redis_url, decode_responses=True)
         self.redis = async_redis.Redis(connection_pool=pool)
 

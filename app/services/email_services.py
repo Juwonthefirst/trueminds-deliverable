@@ -17,7 +17,7 @@ class EmailServices:
         body: str | None = None,
         subject: str,
         html: str | None = None,
-    ) -> resend.Emails.SendResponse:
+    ) -> resend.Emails.SendResponse | None:
         params: resend.Emails.SendParams = {
             "from": "Chuks Kitchen <chuckskitchen@resend.dev>",
             "to": [to],
@@ -27,12 +27,16 @@ class EmailServices:
             params["text"] = body
         elif html:
             params["html"] = html
-
-        email: resend.Emails.SendResponse = resend.Emails.send(params)
-        return email
+        try:
+            email: resend.Emails.SendResponse = resend.Emails.send(params)
+            return email
+        except Exception as e:
+            print(f"unable to send email due to {e}")
 
     @classmethod
     def send_otp_mail(cls, *, to: EmailStr, otp: str | int):
         return cls.send_mail(
-            to=to, subject="Beep - Verify your email address", body=f"Your OTP is {otp}"
+            to=to,
+            subject="Chuks - Verify your email address",
+            body=f"Your OTP is {otp}",
         )
