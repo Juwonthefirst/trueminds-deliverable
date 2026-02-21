@@ -207,6 +207,12 @@ def get_current_user(credentials: CredentialsDep, session: SessionDep):
         raise AuthFailedError()
 ```
 
+#### 1.5 User abadons signup midway
+
+**Problem**: User doesn't verify their email before leaving
+
+**Solution**: Redis TTL deletes the user data after a set amount of time
+
 ---
 
 ### 2. **Cart Management Edge Cases**
@@ -266,24 +272,7 @@ except exc.IntegrityError as e:
 
 ### 3. **Database Edge Cases**
 
-#### 3.1 Database Connection Failure
-
-**Problem**: SQLite database file is locked or corrupted.
-
-**Current Handling**:
-
-```python
-@app.on_event("startup")
-async def startup_event():
-    create_db_and_tables()  # Creates if doesn't exist
-    cache.connect()
-```
-
-If the database is inaccessible, the application will crash at startup. No retry logic.
-
-**Recommendation**: Add startup health checks and retry with exponential backoff.
-
-#### 3.2 Transaction Rollback
+#### 3.1 Transaction Rollback
 
 All service methods include rollback on error:
 
@@ -297,100 +286,11 @@ This prevents partial updates from persisting.
 
 ---
 
-### 4. **Email Service Edge Cases**
-
-#### 4.1 Email Delivery Failure
-
-**Problem**: Resend API is down or email bounces.
-
-**Current Handling**: Email is sent as background task. If it fails, only the error is logged:
-
-```python
-@classmethod
-def send_otp_mail(cls, *, to: EmailStr, otp: str | int):
-    try:
-        email: resend.Emails.SendResponse = resend.Emails.send(params)
-        return email
-    except Exception as e:
-        print(f"unable to send email due to {e}")  # Silent failure
-```
-
-**Problem**: User sees "OTP sent" but never receives the email.
-
-**Recommendation**:
-
-1. Implement retry logic with exponential backoff
-2. Queue failed emails in Redis for manual retry
-3. Return user notification: "May take up to 5 minutes"
-
-#### 4.2 Invalid Email Address
-
-**Problem**: User enters `user@localhost.localdomain` (invalid public email).
-
-**Current Handling**: Pydantic `EmailStr` validates format, not deliverability. Resend will reject invalid domains.
-
-**Recommendation**: Use email verification service or implement double opt-in during signup.
-
----
-
-### 5. **Pagination Edge Cases**
-
-#### 5.1 Offset Beyond Total Items
-
-```
-GET /foods/?limit=10&offset=1000 (when only 50 foods exist)
-```
-
-**Current Behavior**: Returns empty list with `next=null, prev=url`
-
-**Issue**: No indication to client that offset is invalid. Client might think there are zero foods.
-
-**Recommendation**: Include `total_count` in response to inform client of actual data size.
-
-#### 5.2 Negative Offset or Limit
-
-**Protected by validation**:
-
-```python
-limit: int = Query(10, ge=1, le=100),  # 1-100
-offset: int = Query(0, ge=0),           # ≥0
-```
-
----
-
-### 6. **Redis/Cache Edge Cases**
-
-#### 6.1 Redis Connection Failure
-
-**Problem**: Redis server is down during OTP verification.
-
-```
-await cache.connect()  # Startup
-```
-
-**Current Handling**: If Redis fails at startup, the app crashes. No fallback.
-
-**Recommendation**:
-
-1. Add in-memory session fallback for development
-2. Use Redis sentinel for high availability
-3. Implement connection retry logic
-
-#### 6.2 Session Data Corruption
-
-**Problem**: Redis network glitch corrupts session data mid-serialization.
-
-**Current Handling**: None. Malformed data will cause JSON parsing to fail.
-
-**Recommendation**: Implement data validation and checksums for critical session data.
-
----
-
 ## Assumptions
 
 ### Product Assumptions
 
-1. **Food Customization Scope**: System assumes each food item can have at most ONE side protein and ONE extra side. Foods like "Jollof Rice with Chicken and Coleslaw" are pre-defined menu items, not dynamically customizable.
+1. **No Food Rating System**: The provided UI/UX diidn't provide any UI for a food rating system.
 
 2. **No Promotion/Discount System**: No coupon codes or promotional pricing. Assumption: Discounts managed manually by admins through menu prices.
 
@@ -400,51 +300,23 @@ await cache.connect()  # Startup
 
 ### Technical Assumptions
 
-1. **SQLite Suitable for Scale**: Current choice is SQLite for simplicity. Assumption: System won't exceed single-database capacity (100-1000 concurrent users). At 10,000+ users, PostgreSQL is required.
+1. **Synchronous Database Operations**: All DB operations are synchronous, not async. FastAPI overhead from async definition unused. Assumption: Single SQLite connection sufficient; migration to async only needed with PostgreSQL/async driver.
 
-2. **Redis for Session Only**: Redis only stores temporary OTP sessions, not user carts or orders. Assumption: Critical data persists to SQLite; Redis is ephemeral.
+2. **Environment Variables**: All secrets (REDIS_URL, RESEND_API_KEY) loaded from environment. Assumption: Proper secret management in deployment.
 
-3. **Synchronous Password Hashing**: Argon2 password hashing is CPU-intensive (by design) but runs synchronously in request handler. Assumption: Acceptable for signup endpoint (not on critical path) with typical volume.
+3. **Email as Primary Verification**: OTP sent via email. Assumption: Users have email access; no SMS or 2FA alternative.
 
-4. **No Rate Limiting**: No global rate limit on API endpoints. Users can spam requests. Assumption: Reverse proxy (Nginx/CloudFlare) handles rate limiting in production.
-
-5. **CORS Open**: `allow_origins=["*"]` allows any domain. Assumption: Behind API gateway with proper CORS policy, or intentional open-lab environment.
-
-6. **No Request Validation Limits**: No request size limits. Assumption: Reverse proxy enforces limits.
-
-7. **Synchronous Database Operations**: All DB operations are synchronous, not async. FastAPI overhead from async definition unused. Assumption: Single SQLite connection sufficient; migration to async only needed with PostgreSQL/async driver.
-
-8. **Environment Variables**: All secrets (REDIS_URL, RESEND_API_KEY) loaded from environment. Assumption: Proper secret management in deployment.
-
-9. **Email as Primary Verification**: OTP sent via email. Assumption: Users have email access; no SMS or 2FA alternative.
-
-10. **No Multi-Tenancy**: Single instance serves one restaurant (Chuks Kitchen). Assumption: Future scaling requires architectural changes for multi-restaurant support.
+4. **No Food item deletes**: An available quantity field was created to use to display unavailable food because deleting Food items would disrupt foreign key.
 
 ---
 
 ### Data Assumptions
 
-2. **Price as Integer**: `price: int` assumes price is stored in whole units (cents). Assumption: No fractional pricing (e.g., $2.99 stored as 299 cents).
+1. **Price as Integer**: `price: int` assumes price is stored in whole units (cents). Assumption: No fractional pricing (e.g., $2.99 stored as 299 cents).
 
-3. **Unique Email & Phone**: Both are database-level unique constraints. Assumption: Valid uniqueness checks;
+2. **Unique Email & Phone**: Both are database-level unique constraints. Assumption: Valid uniqueness checks;
 
-4. **No Soft Deletes**: No `deleted_at` timestamp. Assumption: Users and foods are rarely deleted; historical data less important than simplicity.
-
-5. **No Audit Logging**: No `created_at`, `updated_at` on food items. Assumption: Track changes manually or not required for compliance.
-
----
-
-### Deployment Assumptions
-
-1. **Single Instance Deployment**: No load balancing, no horizontal scaling. Assumption: Single server handles all traffic initially.
-
-2. **SQLite Single Writer**: SQLite allows only one concurrent writer. Assumption: Acceptable for 100 users; concurrent requests queue sequentially.
-
-3. **Environment File Management**: `.env` or environment variables required for configuration. Assumption: Proper DevOps process for secret rotation.
-
-4. **Startup Migration**: `create_db_and_tables()` runs on every startup. Assumption: Idempotent; safe to call repeatedly.
-
-5. **Health Checks Missing**: No `/health/` endpoint for load balancers. Assumption: Platform-specific health checks (Kubernetes probes) used if containerized.
+3. **Categories are not restricted**: Food categories are sent by the frontend or client in the admin page, so Jollof rice can be categorized as rice or beans depending on the admin
 
 ---
 

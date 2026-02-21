@@ -1,9 +1,11 @@
 from operator import contains
+from traceback import print_exc, print_stack
 from typing import cast
 from fastapi import HTTPException
 from sqlalchemy import ColumnElement, exc
+from sqlalchemy.orm import aliased
 from sqlmodel import Session, select, delete
-from app.models import CartItem, Food, User
+from app.models import CartItem, CartItemSideFoodLink, Food, User
 from app.schemas.cart_schema import CartItemCreate
 
 
@@ -15,16 +17,15 @@ class CartServices:
     def get_cart_item(
         self, food_id: int, side_protein: list[int], extra_side: list[int]
     ):
-        statement = (
-            select(CartItem)
-            .where(
-                CartItem.buyer_id == self.user.id,
-                CartItem.food_id == food_id,
-            )
-            .join(CartItem.side_protein)
-            .where(contains(CartItem.side_protein, side_protein))
-            .join(CartItem.extra_side)
-            .where(contains(CartItem.extra_side, extra_side))
+        statement = select(CartItem).where(
+            CartItem.buyer_id == self.user.id,
+            CartItem.food_id == food_id,
+            # must contain all selected ids
+            *[CartItem.side_protein.any(Food.id == id) for id in side_protein],
+            *[CartItem.extra_side.any(Food.id == id) for id in extra_side],
+            # must not contain any extra ids
+            ~CartItem.side_protein.any(Food.id.not_in(side_protein)),
+            ~CartItem.extra_side.any(Food.id.not_in(extra_side)),
         )
         return self.db.exec(statement).first()
 
@@ -50,12 +51,13 @@ class CartServices:
             )
         except exc.SQLAlchemyError as e:
             self.db.rollback()
-            print(e)
+            print_stack(e)
             raise HTTPException(
                 status_code=500, detail="Something went wrong at our end"
             )
         except Exception as e:
             print(f"Error fetching cart: {e}")
+            print_stack(e)
             raise HTTPException(
                 status_code=500, detail="Something went wrong at our end"
             )
