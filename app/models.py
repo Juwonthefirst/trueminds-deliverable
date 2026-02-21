@@ -31,9 +31,17 @@ class BaseCartItem(SQLModel):
     special_instructions: Optional[str]
 
 
-class CartItemSideFoodLink(SQLModel, table=True):
+class CartItemFoodLink(SQLModel):
     cart_item_id: int = Field(foreign_key="cartitem.id", primary_key=True)
     food_id: int = Field(foreign_key="food.id", primary_key=True)
+
+
+class CartItemSideFoodLink(CartItemFoodLink, table=True):
+    pass
+
+
+class CartItemExtraSideFoodLink(CartItemFoodLink, table=True):
+    pass
 
 
 class OrderItemSideFoodLink(SQLModel, table=True):
@@ -77,7 +85,7 @@ class Food(DBModelBase, BaseFood, table=True):
         back_populates="side_protein", link_model=CartItemSideFoodLink
     )
     cart_extra_side_link: list["CartItem"] = Relationship(
-        back_populates="extra_side", link_model=CartItemSideFoodLink
+        back_populates="extra_side", link_model=CartItemExtraSideFoodLink
     )
     order_side_protein_link: list["OrderItem"] = Relationship(
         back_populates="side_protein",
@@ -95,16 +103,8 @@ class Food(DBModelBase, BaseFood, table=True):
 
 class CartItem(DBModelBase, BaseCartItem, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    food_id: int = Field(foreign_key="food.id", primary_key=True)
-    # side_protein_id: Optional[int] = Field(
-    #     default=None, foreign_key="food.id", primary_key=True
-    # )
-    # extra_side_id: Optional[int] = Field(
-    #     default=None, foreign_key="food.id", primary_key=True
-    # )
-    buyer_id: Optional[int] = Field(
-        default=None, foreign_key="user.id", primary_key=True
-    )
+    food_id: int = Field(foreign_key="food.id")
+    buyer_id: Optional[int] = Field(default=None, foreign_key="user.id")
     buyer: User = Relationship(back_populates="cart_link")
     food: Food = Relationship(
         back_populates="buyer_link",
@@ -114,7 +114,7 @@ class CartItem(DBModelBase, BaseCartItem, table=True):
         back_populates="cart_side_protein_link", link_model=CartItemSideFoodLink
     )
     extra_side: list[Food] = Relationship(
-        back_populates="cart_extra_side_link", link_model=CartItemSideFoodLink
+        back_populates="cart_extra_side_link", link_model=CartItemExtraSideFoodLink
     )
 
 

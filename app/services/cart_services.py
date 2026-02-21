@@ -1,11 +1,8 @@
-from operator import contains
-from traceback import print_exc, print_stack
 from typing import cast
 from fastapi import HTTPException
 from sqlalchemy import ColumnElement, exc
-from sqlalchemy.orm import aliased
 from sqlmodel import Session, select, delete
-from app.models import CartItem, CartItemSideFoodLink, Food, User
+from app.models import CartItem, Food, User
 from app.schemas.cart_schema import CartItemCreate
 
 
@@ -15,31 +12,43 @@ class CartServices:
         self.user = user
 
     def get_cart_item(
-        self, food_id: int, side_protein: list[int], extra_side: list[int]
+        self, food_id: int, side_protein: list[Food], extra_side: list[Food]
     ):
         statement = select(CartItem).where(
             CartItem.buyer_id == self.user.id,
             CartItem.food_id == food_id,
-            # must contain all selected ids
-            *[CartItem.side_protein.any(Food.id == id) for id in side_protein],
-            *[CartItem.extra_side.any(Food.id == id) for id in extra_side],
-            # must not contain any extra ids
-            ~CartItem.side_protein.any(Food.id.not_in(side_protein)),
-            ~CartItem.extra_side.any(Food.id.not_in(extra_side)),
+            *[CartItem.side_protein.contains(food) for food in side_protein],  # type: ignore
+            *[CartItem.extra_side.contains(food) for food in extra_side],  # type: ignore
         )
         return self.db.exec(statement).first()
 
     def add_to_cart(self, cart_item: CartItemCreate) -> CartItem:
+        side_protein_foods = list(
+            self.db.exec(
+                select(Food).where(Food.id.in_(cart_item.side_protein))  # type: ignore
+            ).all()
+        )
+        extra_side_foods = list(
+            self.db.exec(
+                select(Food).where(Food.id.in_(cart_item.extra_side))  # type: ignore
+            ).all()
+        )
+
         try:
             cart_item_in_db = self.get_cart_item(
-                cart_item.food_id, cart_item.side_protein, cart_item.extra_side
+                cart_item.food_id, side_protein_foods, extra_side_foods
             )
             if cart_item_in_db:
                 cart_item_in_db.quantity += cart_item.quantity
                 cart_item_in_db.save(self.db)
                 return cart_item_in_db
 
-            db_cart_item = CartItem(**cart_item.model_dump(), buyer_id=self.user.id)
+            db_cart_item = CartItem(
+                buyer_id=self.user.id,
+                **cart_item.model_dump(exclude={"side_protein", "extra_side"}),
+                extra_side=extra_side_foods,
+                side_protein=side_protein_foods,
+            )
             db_cart_item.save(self.db)
             return db_cart_item
 
@@ -51,13 +60,11 @@ class CartServices:
             )
         except exc.SQLAlchemyError as e:
             self.db.rollback()
-            print_stack(e)
             raise HTTPException(
                 status_code=500, detail="Something went wrong at our end"
             )
         except Exception as e:
             print(f"Error fetching cart: {e}")
-            print_stack(e)
             raise HTTPException(
                 status_code=500, detail="Something went wrong at our end"
             )
