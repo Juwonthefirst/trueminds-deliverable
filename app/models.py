@@ -25,10 +25,26 @@ class DBModelBase(SQLModel):
         return self
 
 
+## Link models
+class BaseCartItem(SQLModel):
+    quantity: int
+    special_instructions: Optional[str]
+
+
+class CartItemSideFoodLink(SQLModel, table=True):
+    cart_item_id: int = Field(foreign_key="cartitem.id", primary_key=True)
+    food_id: int = Field(foreign_key="food.id", primary_key=True)
+
+
+class OrderItemSideFoodLink(SQLModel, table=True):
+    order_id: int = Field(foreign_key="order.id", primary_key=True)
+    food_id: int = Field(foreign_key="food.id", primary_key=True)
+
+
 ## User model
 class BaseUser(SQLModel):
     email: EmailStr = Field(unique=True, index=True)
-    phone_number: int = Field(unique=True, index=True)
+    phone_number: str = Field(unique=True, index=True)
     referral_code: Optional[str]
     is_admin: Optional[bool] = Field(default=False)
 
@@ -58,12 +74,10 @@ class Food(DBModelBase, BaseFood, table=True):
         sa_relationship_kwargs={"foreign_keys": "[CartItem.food_id]"},
     )
     cart_side_protein_link: list["CartItem"] = Relationship(
-        back_populates="side_protein",
-        sa_relationship_kwargs={"foreign_keys": "[CartItem.side_protein_id]"},
+        back_populates="side_protein", link_model=CartItemSideFoodLink
     )
     cart_extra_side_link: list["CartItem"] = Relationship(
-        back_populates="extra_side",
-        sa_relationship_kwargs={"foreign_keys": "[CartItem.extra_side_id]"},
+        back_populates="extra_side", link_model=CartItemSideFoodLink
     )
     order_side_protein_link: list["OrderItem"] = Relationship(
         back_populates="side_protein",
@@ -79,16 +93,15 @@ class Food(DBModelBase, BaseFood, table=True):
     )
 
 
-## Link models
-class BaseCartItem(SQLModel):
-    quantity: int
-    special_instructions: Optional[str]
-
-
 class CartItem(DBModelBase, BaseCartItem, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     food_id: int = Field(foreign_key="food.id", primary_key=True)
-    side_protein_id: Optional[int] = Field(default=None, foreign_key="food.id")
-    extra_side_id: Optional[int] = Field(default=None, foreign_key="food.id")
+    # side_protein_id: Optional[int] = Field(
+    #     default=None, foreign_key="food.id", primary_key=True
+    # )
+    # extra_side_id: Optional[int] = Field(
+    #     default=None, foreign_key="food.id", primary_key=True
+    # )
     buyer_id: Optional[int] = Field(
         default=None, foreign_key="user.id", primary_key=True
     )
@@ -97,13 +110,11 @@ class CartItem(DBModelBase, BaseCartItem, table=True):
         back_populates="buyer_link",
         sa_relationship_kwargs={"foreign_keys": "[CartItem.food_id]"},
     )
-    side_protein: Food = Relationship(
-        back_populates="cart_side_protein_link",
-        sa_relationship_kwargs={"foreign_keys": "[CartItem.side_protein_id]"},
+    side_protein: list[Food] = Relationship(
+        back_populates="cart_side_protein_link", link_model=CartItemSideFoodLink
     )
-    extra_side: Food = Relationship(
-        back_populates="cart_extra_side_link",
-        sa_relationship_kwargs={"foreign_keys": "[CartItem.extra_side_id]"},
+    extra_side: list[Food] = Relationship(
+        back_populates="cart_extra_side_link", link_model=CartItemSideFoodLink
     )
 
 

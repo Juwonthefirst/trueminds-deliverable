@@ -28,7 +28,7 @@ class AuthServices:
     def __init__(self, db: SessionDep):
         self.db = db
 
-    def verify_ceridentials(self, email: EmailStr, phone_number: int):
+    def verify_ceridentials(self, email: EmailStr, phone_number: str):
         is_email_in_use = (
             self.db.exec(select(User.id).where(User.email == email)).first() is not None
         )

@@ -3,9 +3,7 @@ from typing_extensions import Annotated
 from sqlmodel import SQLModel, create_engine, Session
 
 DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(
-    DATABASE_URL, echo=True, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 
 def create_db_and_tables():

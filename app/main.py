@@ -5,7 +5,7 @@ from app.core.cache import cache
 from app.core.database import create_db_and_tables
 
 
-app = FastAPI(debug=True)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
