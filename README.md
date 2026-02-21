@@ -317,6 +317,7 @@ This prevents partial updates from persisting.
 2. **Unique Email & Phone**: Both are database-level unique constraints. Assumption: Valid uniqueness checks;
 
 3. **Categories are not restricted**: Food categories are sent by the frontend or client in the admin page, so Jollof rice can be categorized as rice or beans depending on the admin
+4. **One side Food**: A user can only order one of each side food like 1 chicken or 1 turkey
 
 ---
 
