@@ -44,9 +44,17 @@ class CartItemExtraSideFoodLink(CartItemFoodLink, table=True):
     pass
 
 
-class OrderItemSideFoodLink(SQLModel, table=True):
+class OrderItemFoodLink(SQLModel):
     order_id: int = Field(foreign_key="order.id", primary_key=True)
     food_id: int = Field(foreign_key="food.id", primary_key=True)
+
+
+class OrderItemSideFoodLink(OrderItemFoodLink, table=True):
+    pass
+
+
+class OrderItemExtraSideFoodLink(OrderItemFoodLink, table=True):
+    pass
 
 
 ## User model
@@ -89,11 +97,11 @@ class Food(DBModelBase, BaseFood, table=True):
     )
     order_side_protein_link: list["OrderItem"] = Relationship(
         back_populates="side_protein",
-        sa_relationship_kwargs={"foreign_keys": "[OrderItem.side_protein_id]"},
+        link_model=OrderItemSideFoodLink,
     )
     order_extra_side_link: list["OrderItem"] = Relationship(
         back_populates="extra_side",
-        sa_relationship_kwargs={"foreign_keys": "[OrderItem.extra_side_id]"},
+        link_model=OrderItemExtraSideFoodLink,
     )
     order_link: list["OrderItem"] = Relationship(
         back_populates="food",
@@ -128,16 +136,14 @@ class OrderItem(DBModelBase, table=True):
         sa_relationship_kwargs={"foreign_keys": "[OrderItem.food_id]"},
     )
 
-    side_protein_id: Optional[int] = Field(default=None, foreign_key="food.id")
     side_protein: Food = Relationship(
         back_populates="order_side_protein_link",
-        sa_relationship_kwargs={"foreign_keys": "[OrderItem.side_protein_id]"},
+        link_model=OrderItemSideFoodLink,
     )
 
-    extra_side_id: Optional[int] = Field(default=None, foreign_key="food.id")
     extra_side: Food = Relationship(
         back_populates="order_extra_side_link",
-        sa_relationship_kwargs={"foreign_keys": "[OrderItem.extra_side_id]"},
+        link_model=OrderItemExtraSideFoodLink,
     )
 
     quantity: int

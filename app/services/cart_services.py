@@ -17,10 +17,17 @@ class CartServices:
         statement = select(CartItem).where(
             CartItem.buyer_id == self.user.id,
             CartItem.food_id == food_id,
-            *[CartItem.side_protein.contains(food) for food in side_protein],  # type: ignore
-            *[CartItem.extra_side.contains(food) for food in extra_side],  # type: ignore
         )
-        return self.db.exec(statement).first()
+        cart_items = self.db.exec(statement).all()
+
+        for item in cart_items:
+            item_side_protein = {f.id for f in item.side_protein}
+            item_extra_side = {f.id for f in item.extra_side}
+            if item_side_protein == set(side_protein) and item_extra_side == set(
+                extra_side
+            ):
+                return item
+        return None
 
     def add_to_cart(self, cart_item: CartItemCreate) -> CartItem:
         side_protein_foods = list(
