@@ -20,38 +20,42 @@ Chuks Kitchen is a FastAPI-based food ordering and delivery platform that enable
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       Client Layer                               │
-│                  (Web/Mobile Apps)                               │
+│                       Client Layer                              │
+│                  (Web/Mobile Apps)                              │
 └────────────────────────────┬────────────────────────────────────┘
                              │
 ┌────────────────────────────▼────────────────────────────────────┐
-│                    FastAPI Application                           │
+│                    FastAPI Application                          │
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │              API Routes & Endpoints                     │    │
-│  │  ├─ /signup/ (Auth)          ├─ /foods/ (Catalog)     │    │
-│  │  ├─ /verify/ (Auth)          ├─ /cart/ (Shopping)     │    │
-│  │  └─ HTTP Basic Auth          └─ Pagination Support    │    │
+│  │  ├─ /signup/ (Auth)          ├─ /foods/ (Catalog)       │    │
+│  │  ├─ /verify/ (Auth)          ├─ /cart/ (Shopping)       │    │
+│  │  └─ HTTP Basic Auth          └─ Pagination Support      │    │
 │  └──────────────────────────────▬──────────────────────────┘    │
-│                                 │                                │
+│                                 │                               │
 │  ┌──────────────────────────────▼──────────────────────────┐    │
 │  │            Business Logic Layer (Services)              │    │
 │  │  ├─ AuthServices      ├─ CartServices                   │    │
 │  │  ├─ OTPServices       ├─ EmailServices                  │    │
 │  │  └─ Password Hashing  └─ Error Handling                 │    │
 │  └──────────────────────────────┬──────────────────────────┘    │
-│                                 │                                │
+│                                 │                               │
 └────────────────────────────────┬────────────────────────────────┘
                                  │
                 ┌────────────────┼────────────────┐
                 │                │                │
-   ┌────────────▼────────┐ ┌────▼──────────┐ ┌──▼────────────┐
+   ┌────────────▼────────┐ ┌─────▼─────────┐ ┌────▼──────────┐
    │  SQLite Database    │ │  Redis Cache  │ │ Email Service │
-   │  ├─ Users          │ │  (Sessions)   │ │ (Resend API)  │
-   │  ├─ Foods          │ │  ├─ OTP Hash  │ └───────────────┘
-   │  ├─ CartItems      │ │  └─ Temp Data │
-   │  └─ Orders         │ └───────────────┘
-   └────────────────────┘
+   │  ├─ Users           │ │  (Sessions)   │ │ (Resend API)  │
+   │  ├─ Foods           │ │  ├─ OTP Hash  │ └───────────────┘
+   │  ├─ CartItems       │ │  └─ Temp Data │
+   │  └─ Orders          │ └───────────────┘
+   └─────────────────────┘
 ```
+
+### Data Models
+
+![Image of Data models](./data-models.png)
 
 ### Core Components
 
