@@ -45,7 +45,7 @@ class CartItemExtraSideFoodLink(CartItemFoodLink, table=True):
 
 
 class OrderItemFoodLink(SQLModel):
-    order_id: int = Field(foreign_key="order.id", primary_key=True)
+    order_id: int = Field(foreign_key="orderitem.id", primary_key=True)
     food_id: int = Field(foreign_key="food.id", primary_key=True)
 
 
@@ -127,10 +127,11 @@ class CartItem(DBModelBase, BaseCartItem, table=True):
 
 
 class OrderItem(DBModelBase, table=True):
-    order_id: int = Field(foreign_key="order.id", primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="order.id")
     order: "Order" = Relationship(back_populates="food_link")
 
-    food_id: int = Field(foreign_key="food.id", primary_key=True)
+    food_id: int = Field(foreign_key="food.id")
     food: Food = Relationship(
         back_populates="order_link",
         sa_relationship_kwargs={"foreign_keys": "[OrderItem.food_id]"},

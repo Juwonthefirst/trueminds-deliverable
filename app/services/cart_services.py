@@ -14,20 +14,18 @@ class CartServices:
     def get_cart_item(
         self, food_id: int, side_protein: list[Food], extra_side: list[Food]
     ):
+
         statement = select(CartItem).where(
             CartItem.buyer_id == self.user.id,
             CartItem.food_id == food_id,
+            *[CartItem.side_protein.contains(f) for f in side_protein],  # type: ignore
+            *[CartItem.extra_side.contains(f) for f in extra_side],  # type: ignore
+            # if empty, ensure the relationship is also empty
+            ~CartItem.side_protein.any() if not side_protein else True,  # type: ignore
+            ~CartItem.extra_side.any() if not extra_side else True,  # type: ignore
         )
-        cart_items = self.db.exec(statement).all()
-
-        for item in cart_items:
-            item_side_protein = {f.id for f in item.side_protein}
-            item_extra_side = {f.id for f in item.extra_side}
-            if item_side_protein == set(side_protein) and item_extra_side == set(
-                extra_side
-            ):
-                return item
-        return None
+        cart_item = self.db.exec(statement).first()
+        return cart_item
 
     def add_to_cart(self, cart_item: CartItemCreate) -> CartItem:
         side_protein_foods = list(
@@ -60,6 +58,7 @@ class CartServices:
             return db_cart_item
 
         except exc.IntegrityError as e:
+            print(f"Integrity error: {e}")
             self.db.rollback()
             raise HTTPException(
                 status_code=409,
@@ -67,6 +66,7 @@ class CartServices:
             )
         except exc.SQLAlchemyError as e:
             self.db.rollback()
+            print(f"Database error: {e}")
             raise HTTPException(
                 status_code=500, detail="Something went wrong at our end"
             )
